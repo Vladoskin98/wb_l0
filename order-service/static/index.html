@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Order Service</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        input, button { padding: 8px; margin: 5px; }
+        #result { margin-top: 20px; border: 1px solid #ccc; padding: 10px; }
+        .cache { color: green; }
+        .db { color: blue; }
+    </style>
+</head>
+<body>
+    <h1>Поиск заказа</h1>
+    <input type="text" id="orderId" placeholder="ID заказа">
+    <button onclick="getOrder()">Найти</button>
+    <div id="result"></div>
+
+    <script>
+        function getOrder() {
+            const orderId = document.getElementById('orderId').value;
+            const startTime = performance.now();
+            
+            fetch(`/order/${orderId}`)
+                .then(response => response.json())
+                .then(data => {
+                    const endTime = performance.now();
+                    const fetchDuration = Math.round(endTime - startTime);
+                    
+                    let html = `<div class="${data.source}">
+                        <strong>Источник:</strong> ${data.source} (${data.duration}ms)<br>
+                        <strong>Запрос:</strong> ${fetchDuration}ms<br>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    </div>`;
+                    //<pre>${JSON.stringify(data.order, null, 2)}</pre>
+                    
+                    document.getElementById('result').innerHTML = html;
+                })
+                .catch(error => {
+                    document.getElementById('result').innerHTML = 
+                        `Ошибка: ${error.message}`;
+                });
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,57 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:14
+    container_name: postgres
+    environment:
+      POSTGRES_USER: test_admin
+      POSTGRES_PASSWORD: admin
+      POSTGRES_DB: orders_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - pgdata:/var/lib/postgresql/data
+
+  kafka:
+    image: bitnami/kafka:3.6
+    container_name: kafka
+    ports:
+      - "9092:9092"
+    environment:
+      # KRaft настройки
+      KAFKA_CFG_PROCESS_ROLES: "broker,controller"
+      KAFKA_CFG_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
+      KAFKA_CFG_LISTENERS: "PLAINTEXT://:9092,CONTROLLER://:9093"
+      KAFKA_CFG_ADVERTISED_LISTENERS: "PLAINTEXT://kafka:9092"
+      KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: "CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT"
+      KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: "1@kafka:9093"
+      KAFKA_BROKER_ID: 1
+      ALLOW_PLAINTEXT_LISTENER: "yes"
+      KAFKA_CFG_NODE_ID: 1
+    volumes:
+      - ./kafka/setup.sh:/setup.sh
+      - kafka-data:/bitnami/kafka
+      - ./test_data:/tmp/test_data
+    entrypoint: /bin/bash -c "chmod +x /setup.sh && /setup.sh & /entrypoint.sh /run.sh"
+  order-service:
+    build: .
+    container_name: order-service
+    depends_on:
+        - postgres
+        - kafka
+    environment:
+        - POSTGRES_URL=postgres://test_admin:admin@postgres:5432/orders_db?ssmode=disable
+        - KAFKA_BROKERS=kafka:9092
+        - KAFKA_TOPIC=orders-topic
+    ports:
+        - "8080:8080"
+    volumes:
+        - ./cache_data:/app/cache_data
+    restart: unless-stopped
+
+
+volumes:
+  pgdata:
+  kafka-data:

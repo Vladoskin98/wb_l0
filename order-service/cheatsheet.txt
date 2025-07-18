@@ -1,0 +1,12 @@
+1) Send test json to Kafka
+
+/opt/bitnami/kafka/bin/kafka-console-producer.sh \
+  --broker-list localhost:9092 \
+  --topic orders-topic \
+  --property parse.key=true \
+  --property key.separator=: \ <<EOF
+test1:$(cat /tmp/test_data/test1_pr_utf8.json)
+EOF
+
+2) Connect to DB
+docker exec -it postgres psql -U test_admin -d orders_db -c
